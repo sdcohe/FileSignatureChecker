@@ -103,7 +103,7 @@ namespace FileSignatureChecker
                 DisplayMessage(string.Format("\nFile summary - Matching: {0} Changed: {1} Extra: {2} Missing: {3}",
                     matchingFiles.Count, changedFiles.Count, extraFiles.Count, missingFiles.Count));
 
-                if (extraFiles.Count > 0 || missingFiles.Count > 0)
+                if (extraFiles.Count > 0 || missingFiles.Count > 0 || changedFiles.Count > 0)
                 {
                     returnValue = EXIT_ERROR;
                 }
