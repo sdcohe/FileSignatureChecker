@@ -16,7 +16,7 @@
     {
         public DebugLevelType DebugLevel { get; set; } = DebugLevelType.None;
         public string SignatureFile { get; set; } = "";
-        public string FolderPath { get; set; } = "";
+        public string[] FolderPath { get; set; } 
 
         /// <summary>
         /// Convert this class instance to a string
@@ -24,7 +24,13 @@
         /// <returns>A string representation of this class instance data</returns>
         public override string ToString()
         {
-            return string.Format("SignatureFile: {0} FolderPath: {1} DebugLevel: {2}", SignatureFile, FolderPath, DebugLevel);
+            string folderPathList = "";
+            foreach (string folderPath in FolderPath)
+            {
+                folderPathList += folderPath + " ";
+            }
+
+            return string.Format("SignatureFile: {0} FolderPath: {1} DebugLevel: {2}", SignatureFile, folderPathList, DebugLevel);
         }
 
     }

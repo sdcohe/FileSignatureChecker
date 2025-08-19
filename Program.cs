@@ -28,7 +28,7 @@ namespace FileSignatureChecker
             // create root command and command line options
             RootCommand rootCommand = 
                 new RootCommand("Compare a list of file signatures to the contents of a folder to identify any changed, missing, or extra files.");
-            BuildCommandLineOptions(out Option<string> signatureFileOption, out Option<string> folderPathOption, 
+            BuildCommandLineOptions(out Option<string> signatureFileOption, out Option<string[]> folderPathOption, 
                 out Option<DebugLevelType> debugLevelOption);
             AddOptionsToRootCommand(rootCommand, signatureFileOption, folderPathOption, debugLevelOption);
 
@@ -121,8 +121,8 @@ namespace FileSignatureChecker
 
         protected static List<FileSignature> GetSiteMapFiles(string sitemapFilePath)
         {
-            Log.Debug("Getting site map file {0}", sitemapFilePath);
 
+            Log.Debug("Getting site map file {0}", sitemapFilePath);
             if (!File.Exists(sitemapFilePath))
             {
                 DisplayColorMessage(ConsoleColor.Red, string.Format("File {0} not found", sitemapFilePath));
@@ -146,7 +146,7 @@ namespace FileSignatureChecker
                         return list;
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     DisplayColorMessage(ConsoleColor.Red, string.Format("Exception opening file {0}: {1}}", sitemapFilePath, ex.Message));
                     Log.Error(ex, "Exception opening file {0}", sitemapFilePath);
@@ -155,50 +155,57 @@ namespace FileSignatureChecker
             }
         }
 
-        protected static List<FileSignature> GetLocalFiles(string folderPath)
+        protected static List<FileSignature> GetLocalFiles(string[] folderPath)
         {
-            Log.Debug("Getting file signatures from folder {0}", folderPath);
+            List <FileSignature> signatures = new List <FileSignature>();
 
-            if (!Directory.Exists(folderPath))
+            foreach (string folder in folderPath)
             {
-                DisplayColorMessage(ConsoleColor.Red, string.Format("Folder {0} not found", folderPath));
-                Log.Error("Folder {0} not found", folderPath);
-                return null;
-            }
-            else
-            {
-                try
+                Log.Debug("Getting file signatures from folder {0}", folder);
+
+                if (!Directory.Exists(folder))
                 {
-                    //Regex reg = new Regex(@"^(?!.*\.cs|.*\.tt)");
-                    Regex reg = new Regex(@"");
-                    DirectoryInfo dir = new DirectoryInfo(folderPath);
-                    List<FileInfo> fileList = dir.GetFiles().Where(fi => reg.IsMatch(fi.Name)).ToList();
-
-                    List<FileSignature> siteList = new List<FileSignature>();
-                    foreach (FileInfo file in fileList)
-                    {
-                        siteList.Add(new FileSignature(file));
-                    }
-
-                    Log.Verbose("File signatures read from folder {0}", folderPath);
-                    foreach (FileSignature fileSignature in siteList)
-                    {
-                        Log.Verbose("  {0}", fileSignature.ToString());
-                    }
-                    Log.Debug("Returning {0} signatures from folder {1}", siteList.Count, folderPath);
-
-                    return siteList;
+                    DisplayColorMessage(ConsoleColor.Red, string.Format("Folder {0} not found", folder));
+                    Log.Error("Folder {0} not found", folder);
+                    //return null;
                 }
-                catch (Exception ex)
+                else
                 {
-                    DisplayColorMessage(ConsoleColor.Red, string.Format("Exception traversing folder {0}: {1}}", folderPath, ex.Message));
-                    Log.Error(ex, "Exception traversing folder {0}", folderPath);
-                    return null;
+                    try
+                    {
+                        //Regex reg = new Regex(@"^(?!.*\.cs|.*\.tt)");
+                        Regex reg = new Regex(@"");
+                        DirectoryInfo dir = new DirectoryInfo(folder);
+                        List<FileInfo> fileList = dir.GetFiles().Where(fi => reg.IsMatch(fi.Name)).ToList();
+
+                        List<FileSignature> siteList = new List<FileSignature>();
+                        foreach (FileInfo file in fileList)
+                        {
+                            siteList.Add(new FileSignature(file));
+                        }
+
+                        Log.Verbose("File signatures read from folder {0}", folderPath);
+                        foreach (FileSignature fileSignature in siteList)
+                        {
+                            Log.Verbose("  {0}", fileSignature.ToString());
+                        }
+                        Log.Debug("Returning {0} signatures from folder {1}", siteList.Count, folderPath);
+                        signatures.AddRange(siteList);
+                        //return siteList;
+                    }
+                    catch (Exception ex)
+                    {
+                        DisplayColorMessage(ConsoleColor.Red, string.Format("Exception traversing folder {0}: {1}}", folderPath, ex.Message));
+                        Log.Error(ex, "Exception traversing folder {0}", folderPath);
+                        //return null;
+                    }
                 }
             }
+
+            return signatures;
         }
 
-        private static void BuildCommandLineOptions(out Option<string> signatureFileOption, out Option<string> folderPathOption, out Option<DebugLevelType> debugLevelOption)
+        private static void BuildCommandLineOptions(out Option<string> signatureFileOption, out Option<string[]> folderPathOption, out Option<DebugLevelType> debugLevelOption)
         {
             signatureFileOption = new Option<string>(
                 name: "--file",
@@ -206,11 +213,13 @@ namespace FileSignatureChecker
                 signatureFileOption.AddAlias("-f");
                 signatureFileOption.IsRequired = true;
 
-            folderPathOption = new Option<string>(
+            folderPathOption = new Option<string[]>(
                 name: "--path",
                 description: "The path to a folder containing files to compare with the entries in the signature file");
             folderPathOption.AddAlias("-p");
             folderPathOption.IsRequired = true;
+            folderPathOption.Arity = ArgumentArity.ZeroOrMore;
+            folderPathOption.AllowMultipleArgumentsPerToken = true;
 
             debugLevelOption = new Option<DebugLevelType>(
                 name: "--debug",
@@ -223,7 +232,7 @@ namespace FileSignatureChecker
             debugLevelOption.AddAlias("-d");
         }
         private static void AddOptionsToRootCommand(RootCommand rootCommand, Option<string> signatureFileOption,
-            Option<string> folderPathOption, Option<DebugLevelType> debugLevelOption)
+            Option<string[]> folderPathOption, Option<DebugLevelType> debugLevelOption)
         {
             rootCommand.AddOption(signatureFileOption);
             rootCommand.AddOption(folderPathOption);
